@@ -1,2 +1,2 @@
-# db_proejct
+# db_project
 database course 
