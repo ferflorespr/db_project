@@ -11,6 +11,9 @@ from handler.road_segments import RoadSegmentHandler
 from handler.vehicle import VehicleHandler
 from handler.location_pings import LocationPingHandler
 from handler.parking_areas import ParkingAreaHandler
+from handler.vehicle_assignments import VehicleAssignmentHandler
+from handler.drivers import DriverHandler
+
 
 
 app = FastAPI(
@@ -247,3 +250,70 @@ async def update_trip(trip_id: int, body: dict[str, Any]):
 async def delete_trip(trip_id: int):
     return TripHandler().delete_trip(trip_id)
 
+# ---- Drivers ----------------------------------------------------------------
+
+
+@app.post("/api/v1/drivers", status_code=201)
+async def create_driver(body: dict[str, Any]):
+    return DriverHandler().create_driver(body)
+
+
+@app.get("/api/v1/drivers")
+async def get_drivers(
+    limit: int | None = None,
+    offset: int | None = None,
+    name: str | None = None,
+    license_number: str | None = None,
+):
+    return DriverHandler().get_all_drivers(limit, offset, name, license_number)
+
+
+@app.get("/api/v1/drivers/{driver_id}")
+async def get_driver(driver_id: int):
+    return DriverHandler().get_driver_by_id(driver_id)
+
+
+@app.put("/api/v1/drivers/{driver_id}")
+async def update_driver(driver_id: int, body: dict[str, Any]):
+    return DriverHandler().update_driver(driver_id, body)
+
+
+@app.delete("/api/v1/drivers/{driver_id}")
+async def delete_driver(driver_id: int):
+    return DriverHandler().delete_driver(driver_id)
+
+
+# ---- Vehicle assignments ----------------------------------------------------
+
+
+@app.post("/api/v1/vehicle-assignments", status_code=201)
+async def create_vehicle_assignment(body: dict[str, Any]):
+    return VehicleAssignmentHandler().create_vehicle_assignment(body)
+
+
+@app.get("/api/v1/vehicle-assignments")
+async def get_vehicle_assignments(
+    limit: int | None = None,
+    offset: int | None = None,
+    vehicle_id: int | None = None,
+    driver_id: int | None = None,
+    active: bool | None = None,
+):
+    return VehicleAssignmentHandler().get_all_vehicle_assignments(
+        limit, offset, vehicle_id, driver_id, active
+    )
+
+
+@app.get("/api/v1/vehicle-assignments/{assignment_id}")
+async def get_vehicle_assignment(assignment_id: int):
+    return VehicleAssignmentHandler().get_vehicle_assignment_by_id(assignment_id)
+
+
+@app.put("/api/v1/vehicle-assignments/{assignment_id}")
+async def update_vehicle_assignment(assignment_id: int, body: dict[str, Any]):
+    return VehicleAssignmentHandler().update_vehicle_assignment(assignment_id, body)
+
+
+@app.delete("/api/v1/vehicle-assignments/{assignment_id}")
+async def delete_vehicle_assignment(assignment_id: int):
+    return VehicleAssignmentHandler().delete_vehicle_assignment(assignment_id)
