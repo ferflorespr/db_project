@@ -7,7 +7,7 @@ from dotenv import load_dotenv
 
 # Repo root: .../ETL/config.py → parent.parent
 ROOT_DIR = Path(__file__).resolve().parent.parent
-DATA_DIR = Path(os.getenv("DATA_DIR", ROOT_DIR / "data")).resolve()
+DATA_DIR = Path(os.getenv("DATA_DIR", ROOT_DIR / "data" / "data")).resolve()
 SCHEMA_DIR = Path(os.getenv("SCHEMA_DIR", ROOT_DIR / "schema")).resolve()
 
 # Prefer .env in the repo root; override with real env if already set.
