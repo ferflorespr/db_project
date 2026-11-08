@@ -1,0 +1,23 @@
+# Local PostGIS 17 for testing only.
+# Graders use the Render production database — never put dummy data there.
+
+services:
+  db:
+    image: postgis/postgis:17-3.5
+    container_name: car-tracking-postgis
+    environment:
+      POSTGRES_USER: car_tracking
+      POSTGRES_PASSWORD: car_tracking_dev
+      POSTGRES_DB: car_tracking
+    ports:
+      - "54329:5432"
+    volumes:
+      - car_tracking_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U car_tracking -d car_tracking"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  car_tracking_pgdata:
