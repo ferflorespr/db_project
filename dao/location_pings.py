@@ -9,7 +9,7 @@ from config.dbconfig import PG_DB_CONFIG, POOL_CONFIG
 
 
 class LocationPing(BaseModel):
-    ping_id: Optional[int] = None
+    ping_id: int | None = None
     vehicle_id: int
     ts: Optional[datetime] = None
     speed_kph: Optional[float] = None
@@ -124,9 +124,9 @@ class LocationPingDao:
 
     def create_location_ping(self, ping: LocationPing, geom_json: str) -> int:
         query = """
-            INSERT INTO location_ping (vehicle_id, ts, geom, speed_kph, heading_deg)
+            INSERT INTO location_ping (ping_id, vehicle_id, ts, geom, speed_kph, heading_deg)
             VALUES (
-                %(vehicle_id)s, %(ts)s,
+                %(ping_id)s, %(vehicle_id)s, %(ts)s,
                 ST_SetSRID(ST_GeomFromGeoJSON(%(geom_json)s), 4326),
                 %(speed_kph)s, %(heading_deg)s
             )
@@ -138,6 +138,10 @@ class LocationPingDao:
         try:
             with conn:
                 with conn.cursor() as cursor:
+                    cursor.execute(
+                        "SELECT COALESCE(MAX(ping_id), 0) + 1 FROM location_ping"
+                    )
+                    data["ping_id"] = cursor.fetchone()[0]
                     cursor.execute(query, data)
                     return cursor.fetchone()[0]
         finally:
