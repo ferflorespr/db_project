@@ -227,6 +227,13 @@ def apply_schema(conn: psycopg.Connection) -> None:
         conn.execute(sql)
     conn.commit()
 
+def apply_phase2_constraints(conn: psycopg.Connection) -> None:
+    sql_path = SCHEMA_DIR / "03_phase2_constraints.sql"
+    if not sql_path.exists():
+        return
+    print(f"  applying {sql_path.name}")
+    conn.execute(sql_path.read_text(encoding="utf-8"))
+    conn.commit()
 
 def load_all(conn: psycopg.Connection, data_dir: Path, batch_size: int = 1000) -> None:
     for stem, table, insert_sql, columns in LOAD_PLAN:
@@ -316,13 +323,13 @@ def main(argv: Iterable[str] | None = None) -> int:
         print(f"Loading Parquet from {args.data_dir}…")
         load_all(conn, args.data_dir.resolve())
 
+        print("Applying Phase II constraints…")
+        apply_phase2_constraints(conn)
+
         print("Verifying…")
         if not verify_counts(conn):
             print("ERROR: row counts do not match the official dataset.", file=sys.stderr)
             return 1
-
-    print("ETL finished successfully.")
-    return 0
 
 
 if __name__ == "__main__":
