@@ -23,13 +23,24 @@ def _vehicle_json(vehicle: Vehicle) -> dict:
     }
 
 
+def _integer_field(value: Any, name: str) -> int:
+    if isinstance(value, bool) or (
+        isinstance(value, float) and not value.is_integer()
+    ):
+        raise HTTPException(status_code=400, detail=f"{name} must be an integer")
+    try:
+        return int(value)
+    except (TypeError, ValueError, OverflowError) as exc:
+        raise HTTPException(status_code=400, detail=f"{name} must be an integer") from exc
+
+
 class VehicleHandler:
     def create_vehicle(self, body: dict[str, Any]):
         if not isinstance(body, dict) or not body:
             raise HTTPException(status_code=400, detail="Malformed JSON or invalid payload shape")
         try:
-            vehicle_type_id = int(body["vehicle_type_id"])
-            vehicle_status_id = int(body["vehicle_status_id"])
+            vehicle_type_id = _integer_field(body["vehicle_type_id"], "vehicle_type_id")
+            vehicle_status_id = _integer_field(body["vehicle_status_id"], "vehicle_status_id")
         except (KeyError, TypeError, ValueError) as exc:
             raise HTTPException(
                 status_code=400, detail="Malformed JSON or invalid payload shape"
@@ -42,16 +53,18 @@ class VehicleHandler:
             )
         year = body.get("year")
         if year is not None:
-            year = int(year)
+            year = _integer_field(year, "year")
             if year < 1950 or year > 2100:
                 raise HTTPException(status_code=400, detail="year must be between 1950 and 2100")
 
         make = body.get("make")
         model = body.get("model")
-        if isinstance(make, str):
-            make = make.strip() or None
-        if isinstance(model, str):
-            model = model.strip() or None
+        if make is not None and not isinstance(make, str):
+            raise HTTPException(status_code=400, detail="make must be text")
+        if model is not None and not isinstance(model, str):
+            raise HTTPException(status_code=400, detail="model must be text")
+        make = (make.strip() or None) if make is not None else None
+        model = (model.strip() or None) if model is not None else None
 
         dao = VehicleDao()
         try:
@@ -146,14 +159,14 @@ class VehicleHandler:
 
             data = existing.model_dump()
             if "vehicle_type_id" in updates:
-                vt = int(updates["vehicle_type_id"])
+                vt = _integer_field(updates["vehicle_type_id"], "vehicle_type_id")
                 if not dao.exists_vehicle_type(vt):
                     raise HTTPException(
                         status_code=404, detail="referenced foreign key does not exist"
                     )
                 data["vehicle_type_id"] = vt
             if "vehicle_status_id" in updates:
-                vs = int(updates["vehicle_status_id"])
+                vs = _integer_field(updates["vehicle_status_id"], "vehicle_status_id")
                 if not dao.exists_vehicle_status(vs):
                     raise HTTPException(
                         status_code=404, detail="referenced foreign key does not exist"
@@ -165,7 +178,7 @@ class VehicleHandler:
                     raise HTTPException(status_code=400, detail="plate_number must be non-empty")
                 data["plate_number"] = plate.strip()
             if "year" in updates and updates["year"] is not None:
-                year = int(updates["year"])
+                year = _integer_field(updates["year"], "year")
                 if year < 1950 or year > 2100:
                     raise HTTPException(
                         status_code=400, detail="year must be between 1950 and 2100"
@@ -173,14 +186,14 @@ class VehicleHandler:
                 data["year"] = year
             if "make" in updates:
                 make = updates["make"]
-                data["make"] = make.strip() if isinstance(make, str) else make
-                if data["make"] == "":
-                    data["make"] = None
+                if make is not None and not isinstance(make, str):
+                    raise HTTPException(status_code=400, detail="make must be text")
+                data["make"] = (make.strip() or None) if make is not None else None
             if "model" in updates:
                 model = updates["model"]
-                data["model"] = model.strip() if isinstance(model, str) else model
-                if data["model"] == "":
-                    data["model"] = None
+                if model is not None and not isinstance(model, str):
+                    raise HTTPException(status_code=400, detail="model must be text")
+                data["model"] = (model.strip() or None) if model is not None else None
 
             vehicle = Vehicle(**data)
             try:
@@ -226,9 +239,13 @@ class VehicleHandler:
                 return None
             return {
                 "vehicle_id": row["vehicle_id"],
-                "ping_id": row["ping_id"],
-                "ts": format_ts(row["ts"]),
-                "last_geom": loads_geojson(row["geom_json"]),
+                "plate_number": row["plate_number"],
+                "status": row["status"],
+                "vehicle_kind": row["vehicle_kind"],
+                "fuel_type": row["fuel_type"],
+                "emissions_rating": row["emissions_rating"],
+                "last_ts": format_ts(row["last_ts"]),
+                "last_geom": loads_geojson(row["last_geom_json"]),
                 "speed_kph": row["speed_kph"],
                 "heading_deg": row["heading_deg"],
             }

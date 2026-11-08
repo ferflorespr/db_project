@@ -185,12 +185,29 @@ class VehicleDao:
                 with conn.cursor(cursor_factory=DictCursor) as cursor:
                     cursor.execute(
                         """
-                        SELECT ping_id, vehicle_id, ts, speed_kph, heading_deg,
-                               ST_AsGeoJSON(geom) AS geom_json
-                        FROM location_ping
-                        WHERE vehicle_id = %s
-                        ORDER BY ts DESC, ping_id DESC
-                        LIMIT 1
+                        SELECT v.vehicle_id, v.plate_number,
+                               vs.name AS status, vk.name AS vehicle_kind,
+                               ft.name AS fuel_type, vt.emissions_rating,
+                               latest.ts AS last_ts,
+                               ST_AsGeoJSON(latest.geom) AS last_geom_json,
+                               latest.speed_kph, latest.heading_deg
+                        FROM vehicle v
+                        JOIN vehicle_status vs
+                          ON vs.vehicle_status_id = v.vehicle_status_id
+                        JOIN vehicle_type vt
+                          ON vt.vehicle_type_id = v.vehicle_type_id
+                        JOIN vehicle_kind vk
+                          ON vk.vehicle_kind_id = vt.vehicle_kind_id
+                        JOIN fuel_type ft
+                          ON ft.fuel_type_id = vt.fuel_type_id
+                        JOIN LATERAL (
+                            SELECT ts, geom, speed_kph, heading_deg
+                            FROM location_ping
+                            WHERE vehicle_id = v.vehicle_id
+                            ORDER BY ts DESC, ping_id DESC
+                            LIMIT 1
+                        ) latest ON TRUE
+                        WHERE v.vehicle_id = %s
                         """,
                         (vehicle_id,),
                     )
