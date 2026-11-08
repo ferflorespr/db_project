@@ -126,25 +126,24 @@ class VehicleDao:
         finally:
             self.pool.putconn(conn)
 
-    def create_vehicle_assignment(self, assignment: Vehicle) -> int:
-        data = assignment.model_dump(exclude_none=True)
+    def create_vehicle(self, vehicle: Vehicle) -> int:
+        data = vehicle.model_dump(exclude_none=True)
         conn = self.pool.getconn()
         try:
             with conn:
                 with conn.cursor() as cursor:
-                    if "assignment_id" not in data:
+                    if "vehicle_id" not in data:
                         cursor.execute(
-                            "SELECT COALESCE(MAX(assignment_id), 0) + 1 "
-                            "FROM vehicle_assignment"
+                            "SELECT COALESCE(MAX(vehicle_id), 0) + 1 FROM public.vehicle"
                         )
-                        data["assignment_id"] = cursor.fetchone()[0]
+                        data["vehicle_id"] = cursor.fetchone()[0]
 
                     columns = ", ".join(data)
                     placeholders = ", ".join(f"%({key})s" for key in data)
                     query = f"""
-                        INSERT INTO vehicle_assignment ({columns})
+                        INSERT INTO public.vehicle ({columns})
                         VALUES ({placeholders})
-                        RETURNING assignment_id
+                        RETURNING vehicle_id
                     """
                     cursor.execute(query, data)
                     return cursor.fetchone()[0]
