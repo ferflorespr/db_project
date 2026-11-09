@@ -126,10 +126,10 @@ class TripDao:
     ) -> int:
         query = """
             INSERT INTO trip (
-                vehicle_id, start_ts, end_ts, start_geom, end_geom, distance_km
+                trip_id, vehicle_id, start_ts, end_ts, start_geom, end_geom, distance_km
             )
             VALUES (
-                %(vehicle_id)s, %(start_ts)s, %(end_ts)s,
+                %(trip_id)s, %(vehicle_id)s, %(start_ts)s, %(end_ts)s,
                 CASE WHEN %(start_geom_json)s IS NULL THEN NULL
                      ELSE ST_SetSRID(ST_GeomFromGeoJSON(%(start_geom_json)s), 4326) END,
                 CASE WHEN %(end_geom_json)s IS NULL THEN NULL
@@ -145,6 +145,8 @@ class TripDao:
         try:
             with conn:
                 with conn.cursor() as cursor:
+                    cursor.execute("SELECT COALESCE(MAX(trip_id), 0) + 1 FROM trip")
+                    data["trip_id"] = cursor.fetchone()[0]
                     cursor.execute(query, data)
                     return cursor.fetchone()[0]
         finally:

@@ -86,17 +86,20 @@ class DriverDao:
 
     def create_driver(self, driver: Driver) -> int:
         data = driver.model_dump(exclude_none=True)
-        columns = ", ".join(data.keys())
-        placeholders = ", ".join(f"%({k})s" for k in data.keys())
-        query = f"""
-            INSERT INTO driver ({columns})
-            VALUES ({placeholders})
-            RETURNING driver_id
-        """
         conn = self.pool.getconn()
         try:
             with conn:
                 with conn.cursor() as cursor:
+                    cursor.execute("SELECT COALESCE(MAX(driver_id), 0) + 1 FROM driver")
+                    data["driver_id"] = cursor.fetchone()[0]
+
+                    columns = ", ".join(data)
+                    placeholders = ", ".join(f"%({key})s" for key in data)
+                    query = f"""
+                        INSERT INTO driver ({columns})
+                        VALUES ({placeholders})
+                        RETURNING driver_id
+                    """
                     cursor.execute(query, data)
                     return cursor.fetchone()[0]
         finally:

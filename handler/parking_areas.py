@@ -13,8 +13,9 @@ def _detail(row: ParkingArea) -> dict:
         "parking_area_id": row.parking_area_id,
         "name": row.name,
         "capacity": row.capacity,
-        "created_at": format_ts(row.created_at),
         "geom": loads_geojson(row.geom_json),
+        "created_at": format_ts(row.created_at),
+
     }
 
 
