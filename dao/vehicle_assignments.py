@@ -131,17 +131,24 @@ class VehicleAssignmentDao:
 
     def create_vehicle_assignment(self, assignment: VehicleAssignment) -> int:
         data = assignment.model_dump(exclude_none=True)
-        columns = ", ".join(data.keys())
-        placeholders = ", ".join(f"%({k})s" for k in data.keys())
-        query = f"""
-            INSERT INTO vehicle_assignment ({columns})
-            VALUES ({placeholders})
-            RETURNING assignment_id
-        """
         conn = self.pool.getconn()
         try:
             with conn:
                 with conn.cursor() as cursor:
+                    if "assignment_id" not in data:
+                        cursor.execute(
+                            "SELECT COALESCE(MAX(assignment_id), 0) + 1 "
+                            "FROM vehicle_assignment"
+                        )
+                        data["assignment_id"] = cursor.fetchone()[0]
+
+                    columns = ", ".join(data)
+                    placeholders = ", ".join(f"%({key})s" for key in data)
+                    query = f"""
+                        INSERT INTO vehicle_assignment ({columns})
+                        VALUES ({placeholders})
+                        RETURNING assignment_id
+                    """
                     cursor.execute(query, data)
                     return cursor.fetchone()[0]
         finally:
