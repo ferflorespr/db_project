@@ -105,9 +105,9 @@ class ParkingAreaDao:
 
     def create_parking_area(self, parking: ParkingArea, geom_json: str) -> int:
         query = """
-            INSERT INTO parking_area (name, capacity, geom, created_at)
+            INSERT INTO parking_area (parking_area_id, name, capacity, geom, created_at)
             VALUES (
-                %(name)s, %(capacity)s,
+                %(parking_area_id)s, %(name)s, %(capacity)s,
                 ST_SetSRID(ST_GeomFromGeoJSON(%(geom_json)s), 4326),
                 %(created_at)s
             )
@@ -121,6 +121,10 @@ class ParkingAreaDao:
         try:
             with conn:
                 with conn.cursor() as cursor:
+                    cursor.execute(
+                        "SELECT COALESCE(MAX(parking_area_id), 0) + 1 FROM parking_area"
+                    )
+                    data["parking_area_id"] = cursor.fetchone()[0]
                     cursor.execute(query, data)
                     return cursor.fetchone()[0]
         finally:

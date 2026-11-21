@@ -119,12 +119,13 @@ class RoadSegmentDao:
     def create_road_segment(self, road: RoadSegment, geom_json: str) -> int:
         query = """
             INSERT INTO road_segment (
-                name, speed_limit_kph, geom, created_at, is_oneway, direction
+                road_id, name, speed_limit_kph, is_oneway, direction, geom, created_at
             )
             VALUES (
-                %(name)s, %(speed_limit_kph)s,
+                %(road_id)s, %(name)s, %(speed_limit_kph)s,
+                %(is_oneway)s, %(direction)s,
                 ST_SetSRID(ST_GeomFromGeoJSON(%(geom_json)s), 4326),
-                %(created_at)s, %(is_oneway)s, %(direction)s
+                %(created_at)s
             )
             RETURNING road_id
         """
@@ -136,6 +137,8 @@ class RoadSegmentDao:
         try:
             with conn:
                 with conn.cursor() as cursor:
+                    cursor.execute("SELECT COALESCE(MAX(road_id), 0) + 1 FROM road_segment")
+                    data["road_id"] = cursor.fetchone()[0]
                     cursor.execute(query, data)
                     return cursor.fetchone()[0]
         finally:
